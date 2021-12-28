@@ -13,9 +13,26 @@ var createTask = function(taskText, taskDate, taskList) {
   // append span and p element to parent li
   taskLi.append(taskSpan, taskP);
 
+  auditTask(taskLi);
 
   // append to ul list on the page
   $("#list-" + taskList).append(taskLi);
+};
+
+var auditTask = function(taskEl) {
+  
+  var date = $(taskEl).find("span").text().trim();
+
+  var time = moment(date, "L").set("hour", 17);
+  
+  $(taskEl).removeClass("list-group-item-warning list-group-item-danger");
+
+  if (moment().isAfter(time)) {
+    $(taskEl).addClass("list-group-item-danger");
+  }
+  else if (Math.abs(moment().diff(time, "days")) <= 2) {
+    $(taskEl).addClass("list-group-item-warning");
+  }
 };
 
 var loadTasks = function() {
@@ -106,6 +123,10 @@ $("#trash").droppable({
   }
 });
 
+$("#modalDueDate").datepicker({
+  minDate: 1
+});
+
 // modal was triggered
 $("#task-form-modal").on("show.bs.modal", function() {
   // clear values
@@ -186,12 +207,17 @@ $(".list-group").on("click", "span", function() {
 
   $(this).replaceWith(dateInput);
 
+  dateInput.datepicker({
+    minDate: 1,
+    onClose: function() {
+      $(this).trigger("change");
+    }
+  });
+
   dateInput.trigger("focus");
 
-$(".list-group").on("blur", "input[type='text']", function() {
-  var date = $(this)
-    .val()
-    .trim();
+$(".list-group").on("change", "input[type='text']", function() {
+  var date = $(this).val();
 
   var status = $(this)
     .closest(".list-group")
@@ -201,6 +227,7 @@ $(".list-group").on("blur", "input[type='text']", function() {
   var index = $(this)
     .closest(".list-group-item")
     .index();
+
   tasks[status][index].date = date;
   saveTasks();
 
@@ -209,7 +236,8 @@ $(".list-group").on("blur", "input[type='text']", function() {
     .text(date);
   
   $(this).replaceWith(taskSpan);
-  })
+  auditTask($(taskSpan).closest(".list-group-item"));
+  });
 });
 
 // remove all tasks
